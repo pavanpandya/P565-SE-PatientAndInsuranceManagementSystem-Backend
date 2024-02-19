@@ -54,6 +54,5 @@ def login(request):
     return render(request, 'login.html')
 
 def dashboard(request):
-    # Add your dashboard logic here
     return render(request, 'dashboard.html')
     
