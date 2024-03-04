@@ -29,7 +29,10 @@ SECRET_KEY = os.environ.get('SETTINGS_SECRET_KEY')  ## Made Changes Here
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "https://pims-service.onrender.com",
+    "localhost",
+]
 
 # Application definition
 INSTALLED_APPS = [
