@@ -30,7 +30,7 @@ SECRET_KEY = os.environ.get('SETTINGS_SECRET_KEY')  ## Made Changes Here
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    "https://pims-service.onrender.com",
+    "pims-service.onrender.com",
     "localhost",
 ]
 
