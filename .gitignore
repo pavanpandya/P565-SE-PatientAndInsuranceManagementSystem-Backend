@@ -1,3 +1,4 @@
 .env
 pims_env
-pims_backend/__pycache__/
+authenication
+pims_backend
