@@ -26,8 +26,16 @@ SECRET_KEY = 'django-insecure-vf4%@obwxb=y=)6kal54&5z+tbatiz@&7&ge==zrmw!udyahxp
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "pims-service.onrender.com",
+    "localhost",
+]
 
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
 # Application definition
 
@@ -44,6 +52,7 @@ INSTALLED_APPS = [
     'common.apps.CommonConfig',
     'pims_admin.apps.PimsAdminConfig',
     'rest_framework',
+    'corsheaders',
     'rest_framework.authtoken',
 ]
 
