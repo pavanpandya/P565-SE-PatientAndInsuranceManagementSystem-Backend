@@ -1,11 +1,9 @@
-from .views import registrationView, CustomAuthToken, insuranceCompanyProfileView, patientHistoryView
 from django.urls import path
+from .views import InsuranceProviderSignupAPIView, InsuranceProviderProfileAPIView, InsurancePlanListCreateAPIView, InsurancePlanRetrieveUpdateDestroyAPIView
 
-
-app_name='insurance_provider'
 urlpatterns = [
-    path('registration/', registrationView.as_view(), name='api_patient_registration'),
-    path('login/', CustomAuthToken.as_view(), name='api_patient_login'),
-    path('profile/', insuranceCompanyProfileView.as_view(), name='api_patient_profile'),
-    path('history/:uuid/', patientHistoryView.as_view(), name='api_patient_history'),
+    path('signup/', InsuranceProviderSignupAPIView.as_view(), name='insurance-provider-signup'),
+    path('profile/', InsuranceProviderProfileAPIView.as_view(), name='insurance-provider-profile'),
+    path('plans/', InsurancePlanListCreateAPIView.as_view(), name='insurance-plan-list-create'),
+    path('plans/<int:pk>/', InsurancePlanRetrieveUpdateDestroyAPIView.as_view(), name='insurance-plan-detail'),
 ]

@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-vf4%@obwxb=y=)6kal54&5z+tbatiz@&7&ge==zrmw!udyahxp'
+SECRET_KEY = os.environ.get('SETTINGS_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -29,6 +29,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "pims-service.onrender.com",
     "localhost",
+    "127.0.0.1",
 ]
 
 
@@ -46,11 +47,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'patient.apps.PatientConfig',
-    'doctor.apps.DoctorConfig',
-    'insurance_provider.apps.InsuranceProviderConfig',
-    'common.apps.CommonConfig',
-    'pims_admin.apps.PimsAdminConfig',
+    'patient',
+    'doctor',
+    'insurance_provider',
+    'common.apps',
+    'pims_admin',
     'rest_framework',
     'corsheaders',
     'rest_framework.authtoken',
@@ -74,6 +75,9 @@ REST_FRAMEWORK={
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'PAGE_SIZE': 10
@@ -81,7 +85,6 @@ REST_FRAMEWORK={
 
 
 ROOT_URLCONF = 'pims_api.urls'
-AUTH_USER_MODEL='common.User'
 
 TEMPLATES = [
     {
@@ -107,8 +110,12 @@ WSGI_APPLICATION = 'pims_api.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'PIMS',
+        'USER': 'postgres',
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': 'localhost',  
+        'PORT': '5432',  
     }
 }
 
@@ -151,3 +158,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.ethereal.email'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'rey38@ethereal.email'
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = True
