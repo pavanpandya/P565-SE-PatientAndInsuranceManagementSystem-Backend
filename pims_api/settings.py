@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-vf4%@obwxb=y=)6kal54&5z+tbatiz@&7&ge==zrmw!udyahxp'
+SECRET_KEY = os.environ.get('SETTINGS_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -113,7 +113,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'PIMS',
         'USER': 'postgres',
-        'PASSWORD': '@Jaysonal1311',
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': 'localhost',  
         'PORT': '5432',  
     }
@@ -162,5 +162,5 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.ethereal.email'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'rey38@ethereal.email'
-EMAIL_HOST_PASSWORD = 'GnvQ2scKEpQyAcNGCm'
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = True
