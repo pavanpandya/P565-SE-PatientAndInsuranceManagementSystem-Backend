@@ -1,109 +1,72 @@
-from rest_framework.views import APIView
-from .serializers import doctorRegistrationSerializer, doctorProfileSerializer, doctorAppointmentSerializer
 from rest_framework.response import Response
-from rest_framework import serializers, status
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.models import Token
-from rest_framework.permissions import BasePermission
-from patient.models import Appointment
-from doctor.models import doctor
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+from .models import Doctor, WorkingHour
+from .serializers import DoctorSerializer, WorkingHourSerializer
+from rest_framework.permissions import AllowAny
 
-
-
-class IsDoctor(BasePermission):
-    """Custom Permission class for Doctor"""
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.groups.filter(name='doctor').exists())
-
-
-class CustomAuthToken(ObtainAuthToken):
-    """This class returns custom Authentication token only for Doctor"""
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        account_approval = user.groups.filter(name='doctor').exists()
-        if user.status==False:
-            return Response(
-                {
-                    'message': "Your account is not approved by admin yet!"
-                },
-                status=status.HTTP_403_FORBIDDEN
-            )
-        elif account_approval==False:
-            return Response(
-                {
-                    'message': "You are not authorised to login as a doctor"
-                },
-                status=status.HTTP_403_FORBIDDEN
-            )
-        else:
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({
-                'token': token.key
-            },status=status.HTTP_200_OK)
-
-
-class registrationView(APIView):
-    """API endpoint for doctor Registration"""
+class DoctorSignupAPIView(generics.CreateAPIView):
+    queryset = Doctor.objects.all()
+    serializer_class = DoctorSerializer
     permission_classes = []
 
-    def post(self, request, format=None):
-        registrationSerializer = doctorRegistrationSerializer(data=request.data.get('user_data'))
-        profileSerializer = doctorProfileSerializer(data=request.data.get('profile_data'))
-        checkregistration = registrationSerializer.is_valid()
-        checkprofile = profileSerializer.is_valid()
-        if checkregistration and checkprofile:
-            doctor = registrationSerializer.save()
-            profileSerializer.save(user=doctor)
-            return Response({
-                'user_data': registrationSerializer.data,
-                'profile_data': profileSerializer.data
-            }, status=status.HTTP_201_CREATED)
-        else:
-            return Response({
-                'user_data': registrationSerializer.errors,
-                'profile_data': profileSerializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+class DoctorProfileAPIView(generics.RetrieveUpdateAPIView):
+    queryset = Doctor.objects.all()
+    serializer_class = DoctorSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.first_name
+
+class DoctorListCreateAPIView(generics.ListCreateAPIView):
+    queryset = Doctor.objects.all()
+    serializer_class = DoctorSerializer
+
+class DoctorRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Doctor.objects.all()
+    serializer_class = DoctorSerializer
+
+class WorkingHourListCreateAPIView(generics.ListCreateAPIView):
+    queryset = WorkingHour.objects.all()
+    serializer_class = WorkingHourSerializer
+
+    def perform_create(self, serializer):
+        doctor_id = self.request.data.get('doctor')
+        doctor = Doctor.objects.get(id=doctor_id)
+        serializer.save(doctor=doctor)
+
+class WorkingHourRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = WorkingHour.objects.all()
+    serializer_class = WorkingHourSerializer
 
 
-class doctorProfileView(APIView):
-    """API endpoint for doctor profile view/update - Only accessible by doctors"""
-    permission_classes=[IsDoctor]
+class DoctorAvailabilityListAPIView(generics.ListAPIView):
+    queryset = Doctor.objects.all()
+    serializer_class = DoctorSerializer
+    permission_classes = [AllowAny]  # Allow any user to access doctor availability information
 
-    def get(self, request, format=None):
-        user = request.user
-        profile = doctor.objects.filter(user=user).get()
-        userSerializer=doctorRegistrationSerializer(user)
-        profileSerializer = doctorProfileSerializer(profile)
-        return Response({
-            'user_data':userSerializer.data,
-            'profile_data':profileSerializer.data
-        }, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        # Override get_queryset to prefetch related data for optimization
+        return Doctor.objects.prefetch_related('working_hours', 'hospitals')
 
-    def put(self, request, format=None):
-        user = request.user
-        profile = doctor.objects.filter(user=user).get()
-        profileSerializer = doctorProfileSerializer(
-            instance=profile, data=request.data.get('profile_data'), partial=True)
-        if profileSerializer.is_valid():
-            profileSerializer.save()
-            return Response({
-                'profile_data':profileSerializer.data
-            }, status=status.HTTP_200_OK)
-        return Response({
-                'profile_data':profileSerializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serialized_data = self.get_serializer(queryset, many=True).data
 
+        # Customize serialized data to include hospital information
+        for data in serialized_data:
+            # Include hospital names associated with the doctor
+            hospitals = [hospital.name for hospital in data['hospitals']]
+            data['hospitals'] = hospitals
 
-class doctorAppointmentView(APIView):
-    """API endpoint for getting all appointment detail - only accesible by doctor"""
-    permission_classes = [IsDoctor]
+            # Include working hours along with day, start time, and end time
+            working_hours = []
+            for working_hour in data['working_hours']:
+                working_hours.append({
+                    'day_of_week': working_hour['day_of_week'],
+                    'start_time': working_hour['start_time'],
+                    'end_time': working_hour['end_time']
+                })
+            data['working_hours'] = working_hours
 
-    def get(self, request, format=None):
-        user = request.user
-        user_doctor = doctor.objects.filter(user=user).get()
-        appointments=Appointment.objects.filter(doctor=user_doctor, status=True).order_by('appointment_date', 'appointment_time')
-        appointmentSerializer=doctorAppointmentSerializer(appointments, many=True)
-        return Response(appointmentSerializer.data, status=status.HTTP_200_OK)
+        return Response(serialized_data)
