@@ -1,18 +1,13 @@
 from django.urls import path
-from .views import (
-    PatientSignupAPIView,
-    PatientProfileAPIView,
-    DoctorSearchAPIView,
-    PatientAppointmentCreateAPIView,
-    PatientLoginAPIView,
-    PatientVerifyOTPAPIView
-)
+from .views import PatientSignUpAPIView, PatientLoginAPIView, PatientLoginVerifyOTPView, PatientVerifyOTPView, PatientProfileRetrieveAPIView, PatientProfileUpdateAPIView, PatientAppointmentBookingAPIView
 
 urlpatterns = [
-    path('signup/', PatientSignupAPIView.as_view(), name='patient-signup'),
-    path('profile/', PatientProfileAPIView.as_view(), name='patient-profile'),
-    path('search-doctors/', DoctorSearchAPIView.as_view(), name='doctor-search'),
-    path('create-appointment/', PatientAppointmentCreateAPIView.as_view(), name='create-appointment'),
+    path('signup/', PatientSignUpAPIView.as_view(), name='patient-signup'),
     path('login/', PatientLoginAPIView.as_view(), name='patient-login'),
-    path('verify-otp/', PatientVerifyOTPAPIView.as_view(), name='verify-otp'),
+    path('activate/', PatientVerifyOTPView.as_view(), name='patient-verify-otp'),
+    path('verify/', PatientLoginVerifyOTPView.as_view(), name="patient-login-verify-otp"),
+    path('<int:patient_id>/', PatientProfileRetrieveAPIView.as_view(), name='patient-retrieve'),
+    path('<int:patient_id>/update/', PatientProfileUpdateAPIView.as_view(), name='patient-update'),
+    path('appointments/', PatientAppointmentBookingAPIView.as_view(), name='patient-appointments-create'),  
+    path('appointments/<int:pk>/', PatientAppointmentBookingAPIView.as_view(), name='patient-appointments-update'),
 ]
