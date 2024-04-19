@@ -13,3 +13,6 @@
 
 ## Backend REST-API Documentation:
 - [Live - Documentation Link](https://documenter.getpostman.com/view/16871691/2sA3Bn7sd8)
+
+## Screenshot:
+![alt text](image.png)
