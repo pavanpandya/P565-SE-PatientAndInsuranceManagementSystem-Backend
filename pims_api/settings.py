@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 import os
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -36,7 +37,30 @@ ALLOWED_HOSTS = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://patient-health-system-frontend-8d5g-3b52pys8r.vercel.app"
 ]
+
+# # REST_FRAMEWORK={
+
+# #     'DEFAULT_AUTHENTICATION_CLASSES': [
+# #         'rest_framework.authentication.TokenAuthentication',
+# #     ],
+# #     'DEFAULT_PERMISSION_CLASSES': [
+# #         'rest_framework.permissions.IsAuthenticated',
+# #     ],
+# #     'DEFAULT_PARSER_CLASSES': [
+# #         'rest_framework.parsers.JSONParser',
+# #     ],
+# #     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+# #     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+# #     'PAGE_SIZE': 10
+# # }
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#         # Add any other authentication classes you want to use here
+#     ],
+# }
 
 # Application definition
 
@@ -50,11 +74,9 @@ INSTALLED_APPS = [
     'patient',
     'doctor',
     'insurance_provider',
-    'common.apps',
-    'pims_admin',
+    'hospital',
     'rest_framework',
     'corsheaders',
-    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -65,24 +87,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'pims_api.token_refresh_middleware.TokenRefreshMiddleware',
 ]
-
-REST_FRAMEWORK={
-
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-    ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'PAGE_SIZE': 10
-}
-
 
 ROOT_URLCONF = 'pims_api.urls'
 
@@ -111,11 +117,11 @@ WSGI_APPLICATION = 'pims_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'PIMS',
+        'NAME': 'pims',
         'USER': 'postgres',
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': 'localhost',  
-        'PORT': '5432',  
+        'PORT': '5432',      
     }
 }
 
@@ -148,19 +154,42 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.ethereal.email'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'rey38@ethereal.email'
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+
+
+AUTHENTICATION_BACKENDS = [
+    'patient.authentication.PatientAuthBackend',
+    'doctor.authentication.DoctorAuthBackend',
+    'insurance_provider.authentication.InsuranceProviderAuthBackend',
+]
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # Add any other authentication classes you want to use here
+    ],
+}

@@ -2,3 +2,4 @@
 pims_env
 authenication
 pims_backend
+db.sqlite3
