@@ -31,11 +31,21 @@ class PatientAppointment(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     reason = models.TextField()
     symptoms = models.TextField()
-    admitted_or_not = models.BooleanField()
+    admitted_or_not = models.BooleanField(blank=True, null=True)
+    doctor_findings = models.TextField(blank=True, null=True)
 
     @property
     def hospital_address(self):
         return self.doctor.hospital.hospital_address
+
+
+class PatientReview(models.Model):
+    appointment = models.ForeignKey(PatientAppointment, on_delete=models.CASCADE)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+    rating = models.IntegerField() # 1 to 5
+    review = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class PatientTreatmentCost(models.Model):

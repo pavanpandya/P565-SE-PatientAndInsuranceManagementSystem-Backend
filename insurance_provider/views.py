@@ -8,6 +8,7 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from .models import InsurancePlan, InsuranceProvider
+from django.contrib.sessions.backends.db import SessionStore
 
 
 class InsuranceProviderSignupAPIView(APIView):
@@ -122,8 +123,14 @@ class InsuranceProviderProfileRetrieveAPIView(APIView):
 
     def get(self, request, provider_id):
         try:
-            # Retrieve the insurance provider instance using the ID
-            provider = InsuranceProvider.objects.get(id=provider_id)
+            # Retrieve session data from the database
+            session_store = SessionStore(session_key=request.session.session_key)
+
+            # Retrieve the decoded session data
+            session_data = session_store.load()
+
+            # Get the insurance provider instance
+            provider = InsuranceProvider.objects.get(id=session_data['_auth_user_id'])
 
             # Serialize the insurance provider instance
             serializer = InsuranceProviderSerializer(provider)
@@ -143,10 +150,16 @@ class InsuranceProviderProfileRetrieveAPIView(APIView):
 class InsuranceProviderPlansAPIView(APIView):
     # permission_classes = [IsAuthenticated] 
 
-    def get(self, request, provider_id):
+    def get(self, request):
         try:
+            # Retrieve session data from the database
+            session_store = SessionStore(session_key=request.session.session_key)
+
+            # Retrieve the decoded session data
+            session_data = session_store.load()
+
             # Get the insurance provider instance
-            provider = InsuranceProvider.objects.get(id=provider_id)
+            provider = InsuranceProvider.objects.get(id=session_data['_auth_user_id'])
 
             # Get all plans provided by the insurance provider
             plans = InsurancePlan.objects.filter(insurance_provider=provider)
@@ -165,10 +178,16 @@ class InsuranceProviderPlansAPIView(APIView):
             # Handle case when the provider does not exist
             return Response({'message': 'Insurance provider not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    def put(self, request, provider_id, plan_id):
+    def put(self, request, plan_id):
         try:
+            # Retrieve session data from the database
+            session_store = SessionStore(session_key=request.session.session_key)
+
+            # Retrieve the decoded session data
+            session_data = session_store.load()
+
             # Get the insurance provider instance
-            provider = InsuranceProvider.objects.get(id=provider_id)
+            provider = InsuranceProvider.objects.get(id=session_data['_auth_user_id'])
 
             # Get the specific plan provided by the insurance provider
             plan = InsurancePlan.objects.get(insurance_provider=provider, id=plan_id)
@@ -193,10 +212,16 @@ class InsuranceProviderPlansAPIView(APIView):
             # Handle case when the provider or plan does not exist
             return Response({'message': 'Plan not found'}, status=status.HTTP_404_NOT_FOUND)
         
-    def post(self, request, provider_id):
+    def post(self, request):
         try:
+            # Retrieve session data from the database
+            session_store = SessionStore(session_key=request.session.session_key)
+
+            # Retrieve the decoded session data
+            session_data = session_store.load()
+
             # Get the insurance provider instance
-            provider = InsuranceProvider.objects.get(id=provider_id)
+            provider = InsuranceProvider.objects.get(id=session_data['_auth_user_id'])
 
             # Deserialize the request data
             serializer = InsurancePlanSerializer(data=request.data)

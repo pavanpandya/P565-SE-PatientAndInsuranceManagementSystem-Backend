@@ -6,6 +6,8 @@ logger = logging.getLogger(__name__)
 
 class PatientAuthBackend(BaseBackend):
     def authenticate(self, request, email=None, password=None):
+        logger.debug("Invoking PatientAuthBackend for user authentication.")
+        print("Invoking PatientAuthBackend for user authentication.")
         try:
             patient = Patient.objects.get(email=email)
             if patient.check_password(password):

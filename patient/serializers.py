@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import Patient, PatientAppointment
+from .models import Patient, PatientAppointment, PatientReview
 from django.utils import timezone
 
 
@@ -68,7 +68,7 @@ class PatientSerializer(serializers.ModelSerializer):
 class PatientAppointmentBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientAppointment
-        fields = ['appointment_date', 'appointment_time', 'doctor', 'hospital', 'patient', 'reason', 'symptoms', 'admitted_or_not']
+        fields = ['id', 'appointment_date', 'appointment_time', 'doctor', 'patient', 'reason', 'symptoms', 'admitted_or_not']
         
     def validate(self, data):
         # Add custom validations here if needed.
@@ -82,3 +82,25 @@ class PatientAppointmentBookingSerializer(serializers.ModelSerializer):
         
         # You can add more custom validations here as required.
         return data
+    
+    def create(self, validated_data):
+        # Create the patient appointment only after all validations are passed
+        return super().create(validated_data)
+    
+
+class PatientReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatientReview
+        fields = ['appointment', 'patient', 'doctor', 'rating', 'review']
+
+        # validate function to check if the rating is between 1 and 5
+        def validate(self, data):
+            rating = data.get('rating')
+            if rating < 1 or rating > 5:
+                raise serializers.ValidationError("Rating must be between 1 and 5")
+            
+            return data
+        
+        def create(self, validated_data):
+            # Create the patient review only after all validations are passed
+            return super().create(validated_data)

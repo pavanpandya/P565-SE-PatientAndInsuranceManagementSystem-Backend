@@ -4,10 +4,14 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from patient.serializers import *
-from common.utils import send_otp_to_email
+from common.utils import send_otp_to_email, send_appointment_confirmation_email
 from patient.models import OTPVerification, Patient
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import AccessToken
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import login
+from django.contrib.sessions.backends.db import SessionStore
+import json
 
 
 class PatientSignUpAPIView(APIView):
@@ -97,6 +101,7 @@ class PatientLoginVerifyOTPView(APIView):
             
             # Generate access token and refresh token
             refresh = RefreshToken.for_user(otp_instance.patient)
+            login(request, otp_instance.patient, backend='patient.authentication.PatientAuthBackend')
             return Response({
                 'access': str(refresh.access_token), 
                 'refresh': str(refresh)
@@ -117,23 +122,42 @@ class PatientLogoutAPIView(APIView):
         
 
 class PatientProfileRetrieveAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
-
-    def get(self, request, patient_id):
+    def get(self, request):
         try:
-            patient = Patient.objects.get(id=patient_id)
+            # Retrieve session data from the database
+            session_store = SessionStore(session_key=request.session.session_key)
+
+            # Retrieve the decoded session data
+            session_data = session_store.load()
+
+            # Get patient by _auth_user_id
+            patient = Patient.objects.get(id=session_data['_auth_user_id'])
             serializer = PatientSerializer(patient)
+
+            # Return patient data
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except ValueError:
-            return Response({'message': 'Invalid patient ID format'}, status=status.HTTP_400_BAD_REQUEST)
+
         except Patient.DoesNotExist:
+            # Handle case where patient is not found
             return Response({'message': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            # Generic exception handler
+            return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class PatientProfileUpdateAPIView(APIView):
-    def put(self, request, patient_id):
+    def put(self, request):
         try:    
-            patient = get_object_or_404(Patient, id=patient_id)
+            # Retrieve session data from the database
+            session_store = SessionStore(session_key=request.session.session_key)
+
+            # Retrieve the decoded session data
+            session_data = session_store.load()
+
+            # Get patient by _auth_user_id
+            patient = Patient.objects.get(id=session_data['_auth_user_id'])
             serializer = PatientSerializer(patient, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
@@ -147,11 +171,31 @@ class PatientProfileUpdateAPIView(APIView):
 
 class PatientAppointmentBookingAPIView(APIView):
     def post(self, request):
+        # Retrieve patient ID from session
+        patient_id = request.session.get('_auth_user_id')
+
+        # Add patient ID to request data
+        request.data['patient'] = patient_id
+
         serializer = PatientAppointmentBookingSerializer(data=request.data)
-        
         if serializer.is_valid():
             # Create the appointment
             appointment = serializer.save()
+
+            # Automatically create a placeholder review for the appointment
+            placeholder_review = PatientReview.objects.create(
+                appointment=appointment,
+                patient=appointment.patient,
+                doctor=appointment.doctor,
+                rating=0,  # Set default rating as None
+                review=""  # Set default review as empty string
+            )
+
+            # Send confirmation emails to patient and doctor
+            send_appointment_confirmation_email(appointment, 'patient')
+            send_appointment_confirmation_email(appointment, 'doctor')
+
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -164,6 +208,44 @@ class PatientAppointmentBookingAPIView(APIView):
         if serializer.is_valid():
             # Update the appointment
             appointment = serializer.save()
+
+            # Delete the previous review, if exists
+            previous_review = appointment.patientreview_set.first()
+            if previous_review:
+                previous_review.delete()
+
+            # Create a new placeholder review for the updated appointment
+            placeholder_review = PatientReview.objects.create(
+                appointment=appointment,
+                patient=appointment.patient,
+                doctor=appointment.doctor,
+                rating=0,  # Set default rating as None
+                review=""  # Set default review as empty string
+            )
+
+            # Send confirmation emails to patient and doctor for the updated appointment
+            send_appointment_confirmation_email(appointment, 'patient', updated=True)
+            send_appointment_confirmation_email(appointment, 'doctor', updated=True)
+
             return Response(serializer.data)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    def get(self, request, pk=None):
+        if pk:
+            # Get a single appointment
+            appointment = get_object_or_404(PatientAppointment, pk=pk)
+            serializer = PatientAppointmentBookingSerializer(appointment)
+            return Response(serializer.data)
+        else:
+            # Get all appointments
+            appointments = PatientAppointment.objects.all()
+            serializer = PatientAppointmentBookingSerializer(appointments, many=True)
+            return Response(serializer.data)
+        
+
+class PatientReviewAPIView(APIView):
+    def get(self, request):
+        reviews = PatientReview.objects.all()
+        serializer = PatientReviewSerializer(reviews, many=True)
+        return Response(serializer.data)

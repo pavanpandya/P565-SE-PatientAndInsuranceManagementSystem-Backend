@@ -48,6 +48,7 @@ class Doctor(AbstractBaseUser):
     # date_of_birth = models.DateField()
     # gender = models.CharField(max_length=10)
     is_verified = models.BooleanField(default=False)
+    supports_covid19 = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'licence_number'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'email', 'specialty', 'mobile', 'hospital']

@@ -7,6 +7,9 @@ from common.utils import send_otp_to_email
 from django.contrib.auth import authenticate
 from .serializers import DoctorLoginSerializer, DoctorSignupSerializer, DoctorProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.shortcuts import get_object_or_404
+from patient.models import PatientAppointment
+from django.contrib.sessions.backends.db import SessionStore
 
 
 class DoctorSignupAPIView(APIView):
@@ -128,10 +131,16 @@ class DoctorVerifyLoginOTPAPIView(APIView):
 class DoctorProfileRetrieveAPIView(APIView):
     # permission_classes = [IsAuthenticated]
 
-    def get(self, request, doctor_id):
+    def get(self, request):
         try:
+            # Retrieve session data from the database
+            session_store = SessionStore(session_key=request.session.session_key)
+
+            # Retrieve the decoded session data
+            session_data = session_store.load()
+
             # Retrieve the doctor based on the provided ID
-            doctor = Doctor.objects.get(id=doctor_id)
+            doctor = Doctor.objects.get(id=session_data['_auth_user_id'])
 
             # Serialize the doctor's data
             serializer = DoctorProfileSerializer(doctor)
@@ -144,3 +153,12 @@ class DoctorProfileRetrieveAPIView(APIView):
         except Doctor.DoesNotExist:
             # Handle doctor not found error
             return Response({'message': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)    
+        
+
+class DoctorFindingsAPIView(APIView):
+    def put(self, request, pk):
+        appointment = get_object_or_404(PatientAppointment, pk=pk)
+        appointment.doctor_findings = request.data.get('doctor_findings')
+        appointment.admitted_or_not = request.data.get('admitted_or_not')
+        appointment.save()
+        return Response({'message': 'Doctor findings updated successfully'}, status=status.HTTP_200_OK)
