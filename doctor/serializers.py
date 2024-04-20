@@ -61,4 +61,4 @@ class DoctorLoginSerializer(serializers.Serializer):
 class DoctorProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
-        fields = ['id', 'first_name', 'last_name', 'email', 'licence_number', 'specialty', 'mobile', 'hospital', 'is_verified']
+        fields = ['id', 'first_name', 'last_name', 'email', 'licence_number', 'specialty', 'mobile', 'hospital', 'is_verified', 'supports_covid19']

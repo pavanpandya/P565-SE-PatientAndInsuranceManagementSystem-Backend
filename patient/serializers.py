@@ -68,7 +68,7 @@ class PatientSerializer(serializers.ModelSerializer):
 class PatientAppointmentBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientAppointment
-        fields = ['id', 'appointment_date', 'appointment_time', 'doctor', 'patient', 'reason', 'symptoms', 'admitted_or_not']
+        fields = ['id', 'appointment_date', 'appointment_time', 'doctor', 'patient', 'reason', 'symptoms', 'admitted_or_not', 'status']
         
     def validate(self, data):
         # Add custom validations here if needed.

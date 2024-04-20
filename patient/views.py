@@ -6,12 +6,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from patient.serializers import *
 from common.utils import send_otp_to_email, send_appointment_confirmation_email
 from patient.models import OTPVerification, Patient
+from doctor.models import Doctor
+from doctor.views import DoctorProfileSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import AccessToken
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import login
 from django.contrib.sessions.backends.db import SessionStore
 import json
+from datetime import datetime
 
 
 class PatientSignUpAPIView(APIView):
@@ -176,6 +179,7 @@ class PatientAppointmentBookingAPIView(APIView):
 
         # Add patient ID to request data
         request.data['patient'] = patient_id
+        request.data['status'] = 'confirmed'
 
         serializer = PatientAppointmentBookingSerializer(data=request.data)
         if serializer.is_valid():
@@ -203,6 +207,12 @@ class PatientAppointmentBookingAPIView(APIView):
     def put(self, request, pk):
         # Get the appointment to update
         appointment = get_object_or_404(PatientAppointment, pk=pk)
+
+        # Check if the appointment date is in the future
+        if appointment.appointment_date < datetime.now().date():
+            return Response({"error": "Cannot update past appointments"}, status=status.HTTP_400_BAD_REQUEST)
+        
+
         serializer = PatientAppointmentBookingSerializer(appointment, data=request.data, partial=True)
         
         if serializer.is_valid():
@@ -232,20 +242,78 @@ class PatientAppointmentBookingAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def get(self, request, pk=None):
+        # Update status of appointments that have passed their scheduled time
+        self.update_completed_appointments()
+
         if pk:
             # Get a single appointment
             appointment = get_object_or_404(PatientAppointment, pk=pk)
             serializer = PatientAppointmentBookingSerializer(appointment)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             # Get all appointments
             appointments = PatientAppointment.objects.all()
             serializer = PatientAppointmentBookingSerializer(appointments, many=True)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    def update_completed_appointments(self):
+        # Get current date and time
+        current_datetime = timezone.now()
+
+        # Query appointments that have passed their scheduled time and status is not "completed"
+        appointments_to_update = PatientAppointment.objects.filter(
+            appointment_date__lte=current_datetime.date(),
+            appointment_time__lte=current_datetime.time(),
+            status__in=['pending', 'confirmed']
+        )
+
+        # Update status to "completed" for each appointment found
+        for appointment in appointments_to_update:
+            appointment.status = 'completed'
+            appointment.save()
         
 
 class PatientReviewAPIView(APIView):
     def get(self, request):
         reviews = PatientReview.objects.all()
         serializer = PatientReviewSerializer(reviews, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+class DoctorSearchAPIView(APIView):
+    def get(self, request):
+        try:
+            # Get query parameters from request
+            search_params = request.query_params
+            
+            # If no search parameters provided, return all doctors
+            if not search_params:
+                doctors = Doctor.objects.all()
+            else:
+                # Initialize queryset with all doctors
+                doctors = Doctor.objects.all()
+                
+                # Filter doctors based on search parameters
+                if 'name' in search_params:
+                    name_query = search_params['name']
+                    doctors = doctors.filter(first_name__icontains=name_query) | doctors.filter(last_name__icontains=name_query)
+                
+                if 'specialty' in search_params:
+                    specialty_query = search_params['specialty']
+                    doctors = doctors.filter(specialty__icontains=specialty_query)
+                
+                if 'supports_covid19' in search_params:
+                    supports_covid19_query = search_params['supports_covid19']
+                    if supports_covid19_query.lower() == 'true':
+                        doctors = doctors.filter(supports_covid19=True)
+                    elif supports_covid19_query.lower() == 'false':
+                        doctors = doctors.filter(supports_covid19=False)
+                    else:
+                        return Response({"error": "Invalid value for supports_covid19 parameter"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Serialize the queryset
+            serializer = DoctorProfileSerializer(doctors, many=True)
+            return Response(serializer.data)
+        
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

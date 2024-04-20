@@ -33,6 +33,7 @@ class PatientAppointment(models.Model):
     symptoms = models.TextField()
     admitted_or_not = models.BooleanField(blank=True, null=True)
     doctor_findings = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, default='pending', choices=[('pending', 'Pending'), ('confirmed', 'Confirmed'), ('completed', 'Completed')])
 
     @property
     def hospital_address(self):
