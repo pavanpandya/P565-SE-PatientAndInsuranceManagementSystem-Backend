@@ -3,6 +3,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
+from django.urls import reverse_lazy
 
 
 def send_otp_to_email(email):
@@ -73,3 +74,22 @@ def send_appointment_confirmation_email(appointment, recipient_type, updated=Fal
         [recipient_email],
         html_message=html_message
     )
+
+
+def send_reset_password_email(email, uidb64, token):
+    """
+    Sends a reset password email to the user with the reset password URL.
+    
+    Parameters:
+        - email: Email address of the user
+        - uidb64: Base64 encoded user ID
+        - token: Reset password token
+    """
+    reset_password_url = f"{settings.FRONTEND_URL}/api/patient/reset-password/verify/{uidb64}/{token}/"
+    
+    subject = "Reset Your Password"
+    message = f"Use the following link to reset your password: {reset_password_url}"
+    from_email = settings.EMAIL_HOST_USER
+    recipient_list = [email]
+    
+    send_mail(subject, message, from_email, recipient_list)

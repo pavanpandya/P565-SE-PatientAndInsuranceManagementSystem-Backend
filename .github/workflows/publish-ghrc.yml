@@ -1,0 +1,49 @@
+name: Build and Deploy Django App
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Django migrations
+        run: |
+          python manage.py migrate
+
+      - name: Collect static files
+        run: |
+          python manage.py collectstatic --noinput
+
+      - name: Build and push Docker image
+        run: |
+          docker login --username pavanpandya --password ${{secrets.ACCESS_TOKEN}} ghcr.io
+          docker build -t ghcr.io/pavanpandya/medilink:latest --file Dockerfile .
+          docker push ghcr.io/pavanpandya/medilink:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_deploy
+    steps:
+      - name: Deploy to Render
+        run: |
+          curl -X POST "https://api.render.com/deploy/srv-cniid5779t8c73bsfdog?key=cxa5huZ4PqM${{ secrets.RENDER_DEPLOY_KEY }}"

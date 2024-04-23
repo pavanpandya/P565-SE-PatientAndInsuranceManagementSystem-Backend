@@ -31,7 +31,7 @@ class PatientAppointment(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     reason = models.TextField()
     symptoms = models.TextField()
-    admitted_or_not = models.BooleanField(blank=True, null=True)
+    admitted_or_not = models.CharField(default='no', max_length=5, choices=[('yes', 'Yes'), ('no', 'No')])
     doctor_findings = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, default='pending', choices=[('pending', 'Pending'), ('confirmed', 'Confirmed'), ('completed', 'Completed')])
 

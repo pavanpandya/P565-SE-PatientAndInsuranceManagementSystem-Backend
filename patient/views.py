@@ -4,7 +4,7 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from patient.serializers import *
-from common.utils import send_otp_to_email, send_appointment_confirmation_email
+from common.utils import send_otp_to_email, send_appointment_confirmation_email, send_reset_password_email
 from patient.models import OTPVerification, Patient
 from doctor.models import Doctor
 from doctor.views import DoctorProfileSerializer
@@ -15,6 +15,10 @@ from django.contrib.auth import login
 from django.contrib.sessions.backends.db import SessionStore
 import json
 from datetime import datetime
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import smart_str, force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.urls import reverse
 
 
 class PatientSignUpAPIView(APIView):
@@ -123,6 +127,54 @@ class PatientLogoutAPIView(APIView):
         except Exception as e:
             return Response({'message': 'Invalid refresh token'}, status=status.HTTP_400_BAD_REQUEST)
         
+
+class PatientForgotPasswordAPIView(APIView):
+    # Send reset password link to the patient's email along with token for verification
+    def post(self, request):
+        try:
+            email = request.data['email']
+            patient = Patient.objects.get(email=email)
+
+            # Generate uidb64 for the user
+            uidb64 = urlsafe_base64_encode(force_bytes(patient.pk))
+
+            # Generate password reset token
+            token_generator = PasswordResetTokenGenerator()
+            token = token_generator.make_token(patient)
+
+            # Send reset password email
+            send_reset_password_email(email, uidb64, token)
+            
+            return Response({'message': 'Reset password link sent to your email'}, status=status.HTTP_200_OK)
+        except Patient.DoesNotExist:
+            return Response({'message': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class PatientResetPasswordAPIView(APIView):
+    def post(self, request, uidb64, token):
+        try:
+            password = request.data['password']
+            confirm_password = request.data['confirm_password']
+
+            # Check if passwords match
+            if password != confirm_password:
+                return Response({'message': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            uid = urlsafe_base64_decode(uidb64)
+            patient = Patient.objects.get(pk=uid)
+
+            # Check if the token is valid
+            token_generator = PasswordResetTokenGenerator()
+            if not token_generator.check_token(patient, token):
+                return Response({'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Set new password
+            patient.set_password(password)
+            patient.save()
+            return Response({'message': 'Password reset successful'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PatientProfileRetrieveAPIView(APIView):
     def get(self, request):

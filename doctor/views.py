@@ -156,9 +156,23 @@ class DoctorProfileRetrieveAPIView(APIView):
         
 
 class DoctorFindingsAPIView(APIView):
-    def put(self, request, pk):
-        appointment = get_object_or_404(PatientAppointment, pk=pk)
-        appointment.doctor_findings = request.data.get('doctor_findings')
-        appointment.admitted_or_not = request.data.get('admitted_or_not')
-        appointment.save()
-        return Response({'message': 'Doctor findings updated successfully'}, status=status.HTTP_200_OK)
+    def put(self, request):
+        try:
+            # Check if the request data contains the required fields i.e appointment_id, doctor_findings, admitted_or_not
+            required_fields = ['appointment_id', 'doctor_findings', 'admitted_or_not']
+            for field in required_fields:
+                if not request.data.get(field):
+                    return Response({'message': f'The field {field} is required'}, status=status.HTTP_400_BAD_REQUEST)
+                
+            pk = request.data.get('appointment_id')
+            appointment = get_object_or_404(PatientAppointment, pk=pk)
+            appointment.doctor_findings = request.data.get('doctor_findings')
+            appointment.admitted_or_not = request.data.get('admitted_or_not')
+            appointment.save()
+            return Response({'message': 'Doctor findings updated successfully'}, status=status.HTTP_200_OK)
+        
+        except PatientAppointment.DoesNotExist:
+            return Response({'error': 'Patient appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
