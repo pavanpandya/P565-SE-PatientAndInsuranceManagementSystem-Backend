@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SETTINGS_SECRET_KEY')
+SECRET_KEY = 'django-insecure-vf4%@obwxb=y=)6kal54&5z+tbatiz@&7&ge==zrmw!udyahxp'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -187,7 +187,7 @@ AUTHENTICATION_BACKENDS = [
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'SIGNING_KEY': os.environ.get('JWT_SECRET_KEY'),
+    'SIGNING_KEY': 'my-pims-secret-key',
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
