@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 import os
+import dj-database-url
 from pathlib import Path
 from datetime import timedelta
 
@@ -116,15 +117,18 @@ WSGI_APPLICATION = 'pims_api.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.environ.get('DB_NAME'),
+#         'USER': os.environ.get('DB_USER'),
+#         'PASSWORD': os.environ.get('DB_PASSWORD'),
+#         'HOST': os.environ.get('DB_HOST'),  
+#         'PORT': os.environ.get('DB_PORT'),  
+#     }
+# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),  
-        'PORT': os.environ.get('DB_PORT'),  
-    }
+	"default": dj_database_url.parse("postgres://pims_db_user:qLyGqrlC2wTJzzEenn7DWMk8lN5yfUrW@dpg-coh8d2ed3nmc73a13j20-a.oregon-postgres.render.com/pims_db")
 }
 
 
