@@ -12,3 +12,4 @@ python-dotenv
 pytz
 sqlparse
 tzdata
+dj-database-url
